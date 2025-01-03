@@ -78,6 +78,8 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
 
   const origGLErrorFn = options.origGLErrorFn || ctx.getError;
 
+  let allowUnknownTextures = false;
+
   function createSharedState(ctx) {
     const drawingBufferInfo = getDrawingbufferInfo(ctx);
     const sharedState = {
@@ -102,6 +104,9 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
             },
             getResourcesInfo(type) {
               return collectObjects(sharedState, type);
+            },
+            setAllowUnknownTextures(allow) {
+              allowUnknownTextures = allow;
             },
           },
         },
@@ -289,9 +294,16 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     if (!obj) {
       throw new Error(`no texture bound to ${target}`);
     }
-    const info = webglObjectToMemory.get(obj);
-    if (!info) {
+    let info = webglObjectToMemory.get(obj);
+    if (!info && !allowUnknownTextures) {
       throw new Error(`unknown texture ${obj}`);
+    }
+    // This is often an error, but if the textures were created via XRWebGLBinding we are
+    // not able to wrap those calls, so we end up without a webglObjectToMemory
+    // entry for them.
+    if (!info) {
+      info = { size: 0 };
+      webglObjectToMemory.set(obj, info);
     }
     return info;
   }

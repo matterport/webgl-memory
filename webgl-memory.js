@@ -437,6 +437,7 @@
   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   */
 
+
   //------------ [ from https://github.com/KhronosGroup/WebGLDeveloperTools ]
 
   /*
@@ -482,6 +483,8 @@
 
     const origGLErrorFn = options.origGLErrorFn || ctx.getError;
 
+    let allowUnknownTextures = false;
+
     function createSharedState(ctx) {
       const drawingBufferInfo = getDrawingbufferInfo(ctx);
       const sharedState = {
@@ -506,6 +509,9 @@
               },
               getResourcesInfo(type) {
                 return collectObjects(sharedState, type);
+              },
+              setAllowUnknownTextures(allow) {
+                allowUnknownTextures = allow;
               },
             },
           },
@@ -693,9 +699,16 @@
       if (!obj) {
         throw new Error(`no texture bound to ${target}`);
       }
-      const info = webglObjectToMemory.get(obj);
-      if (!info) {
+      let info = webglObjectToMemory.get(obj);
+      if (!info && !allowUnknownTextures) {
         throw new Error(`unknown texture ${obj}`);
+      }
+      // This is often an error, but if the textures were created via XRWebGLBinding we are
+      // not able to wrap those calls, so we end up without a webglObjectToMemory
+      // entry for them.
+      if (!info) {
+        info = { size: 0 };
+        webglObjectToMemory.set(obj, info);
       }
       return info;
     }
@@ -1145,6 +1158,7 @@
   IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   */
+
 
   function wrapGetContext(Ctor) {
     const oldFn = Ctor.prototype.getContext;
