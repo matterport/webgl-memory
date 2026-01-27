@@ -265,4 +265,41 @@ describe('tex-image tests', () => {
     tracker.deleteObjectAndMemory(texSize);
   });
 
+  it('test activeTexture', () => {
+    const {gl} = createContext();
+    const tracker = new MemInfoTracker(gl, 'texture');
+
+    const tex1 = gl.createTexture();
+    const tex2 = gl.createTexture();
+    tracker.addObjects(2);
+
+    gl.activeTexture(gl.TEXTURE5);
+    gl.bindTexture(gl.TEXTURE_2D, tex1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 16, 8, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    const tex1Size = 16 * 8 * 4;
+    tracker.addMemory(tex1Size);
+
+    gl.activeTexture(gl.TEXTURE7);
+    gl.bindTexture(gl.TEXTURE_2D, tex2);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 32, 8, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    const tex2Size = 32 * 8 * 4;
+    tracker.addMemory(tex2Size);
+
+    gl.activeTexture(gl.TEXTURE5);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 8, 8, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    const newTex1Size = 8 * 8 * 4;
+    tracker.addMemory(newTex1Size - tex1Size);
+
+    gl.activeTexture(gl.TEXTURE7);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 8, 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    const newTex2Size = 8 * 4 * 4;
+    tracker.addMemory(newTex2Size - tex2Size);
+
+    gl.deleteTexture(tex1);
+    tracker.deleteObjectAndMemory(newTex1Size);
+    gl.deleteTexture(tex2);
+    tracker.deleteObjectAndMemory(newTex2Size);
+  });
+
+
 });
