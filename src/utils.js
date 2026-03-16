@@ -3,12 +3,42 @@ export function isWebGL2(gl) {
   return !!gl.texImage3D;
 }
 
+/**
+ * Cross-realm safe check for TypedArray (e.g. Uint8Array, Float32Array).
+ *
+ * Previously: `return v && v.buffer && v.buffer instanceof ArrayBuffer`
+ *
+ * Fixed for the Showcase SDK Bundle (JSSDK-2977). When Showcase runs inside
+ * an iframe and an external SDK component (on the embedding page) creates
+ * geometry — e.g. a Uint16Array index buffer — that TypedArray belongs to
+ * the embedding page's JavaScript realm. Each realm has its own set of
+ * built-in constructors, so the iframe's `ArrayBuffer` is a *different
+ * constructor* than the embedding page's `ArrayBuffer`. When webgl-memory
+ * (running inside the iframe) checked `v.buffer instanceof ArrayBuffer`, it
+ * was comparing against the iframe's ArrayBuffer constructor, which returned
+ * false for buffers originating from the parent page. This caused a
+ * "unsupported bufferData src type" error when the SDK passed indexed
+ * geometry through THREE.js bufferData calls.
+ *
+ * `ArrayBuffer.isView` is specified to work across realms and avoids this
+ * problem entirely.
+ */
 export function isTypedArray(v) {
-  return v && v.buffer && v.buffer instanceof ArrayBuffer;
+  return v != null && ArrayBuffer.isView(v);
 }
 
+/**
+ * Cross-realm safe check for any BufferSource (TypedArray or ArrayBuffer).
+ *
+ * Previously: `return isTypedArray(v) || v instanceof ArrayBuffer`
+ *
+ * Same cross-realm issue as isTypedArray above (JSSDK-2977). The
+ * `instanceof ArrayBuffer` fast path still covers same-realm buffers;
+ * the `Object.prototype.toString` fallback catches cross-realm
+ * ArrayBuffers where `instanceof` returns false.
+ */
 export function isBufferSource(v) {
-  return isTypedArray(v) || v instanceof ArrayBuffer;
+  return isTypedArray(v) || (v instanceof ArrayBuffer || Object.prototype.toString.call(v) === '[object ArrayBuffer]');
 }
 
 // ---------------------------------
