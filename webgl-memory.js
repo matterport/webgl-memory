@@ -358,42 +358,14 @@
     return fn ? fn(width, height, depth) : getBytesForMipUncompressed(internalFormat, width, height, depth, type);
   }
 
-  /**
-   * Cross-realm safe check for TypedArray (e.g. Uint8Array, Float32Array).
-   *
-   * Previously: `return v && v.buffer && v.buffer instanceof ArrayBuffer`
-   *
-   * Fixed for the Showcase SDK Bundle. When Showcase runs inside
-   * an iframe and an external SDK component (on the embedding page) creates
-   * geometry — e.g. a Uint16Array index buffer — that TypedArray belongs to
-   * the embedding page's JavaScript realm. Each realm has its own set of
-   * built-in constructors, so the iframe's `ArrayBuffer` is a *different
-   * constructor* than the embedding page's `ArrayBuffer`. When webgl-memory
-   * (running inside the iframe) checked `v.buffer instanceof ArrayBuffer`, it
-   * was comparing against the iframe's ArrayBuffer constructor, which returned
-   * false for buffers originating from the parent page. This caused a
-   * "unsupported bufferData src type" error when the SDK passed indexed
-   * geometry through THREE.js bufferData calls.
-   *
-   * `ArrayBuffer.isView` is specified to work across realms and avoids this
-   * problem entirely.
-   */
+  // Cross-realm safe: ArrayBuffer.isView works across iframes unlike instanceof.
   function isTypedArray(v) {
     return v != null && ArrayBuffer.isView(v);
   }
 
-  /**
-   * Cross-realm safe check for any BufferSource (TypedArray or ArrayBuffer).
-   *
-   * Previously: `return isTypedArray(v) || v instanceof ArrayBuffer`
-   *
-   * Same cross-realm issue as isTypedArray above. The
-   * `instanceof ArrayBuffer` fast path still covers same-realm buffers;
-   * the `Object.prototype.toString` fallback catches cross-realm
-   * ArrayBuffers where `instanceof` returns false.
-   */
+  // Cross-realm safe: instanceof covers same-realm, toString fallback covers cross-realm.
   function isBufferSource(v) {
-    return isTypedArray(v) || (v instanceof ArrayBuffer || Object.prototype.toString.call(v) === '[object ArrayBuffer]');
+    return isTypedArray(v) || v instanceof ArrayBuffer || Object.prototype.toString.call(v) === '[object ArrayBuffer]';
   }
 
   function getDrawingbufferInfo(gl) {
