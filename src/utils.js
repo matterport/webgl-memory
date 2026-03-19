@@ -3,12 +3,14 @@ export function isWebGL2(gl) {
   return !!gl.texImage3D;
 }
 
+// Cross-realm safe: ArrayBuffer.isView works across iframes unlike instanceof.
 export function isTypedArray(v) {
-  return v && v.buffer && v.buffer instanceof ArrayBuffer;
+  return v != null && ArrayBuffer.isView(v);
 }
 
+// Cross-realm safe: instanceof covers same-realm, toString fallback covers cross-realm.
 export function isBufferSource(v) {
-  return isTypedArray(v) || v instanceof ArrayBuffer;
+  return isTypedArray(v) || v instanceof ArrayBuffer || Object.prototype.toString.call(v) === '[object ArrayBuffer]';
 }
 
 // ---------------------------------
